@@ -1,16 +1,22 @@
 from enum import Enum
 
-MY_ID = b'\x11'
-FRIEND_ID = b'\x01'
+
+
+BoxFishID = Enum('BoxFish_id',({\
+    'BOXFISH_ALL':b'\x00',\
+	'BoxFish_1':b'\x01',\
+    'BoxFish_2':b'\x02',\
+	'BoxFish_3':b'\x03',\
+	'BoxFish_4':b'\x04',\
+	'BoxFish_5':b'\x05'}))
+
 
 # Recstate枚举类型
 Recstate = Enum('Recstate',(\
-	'WAITING_FF1',\
-    'WAITING_FF2',\
+	'WAITING_FF',\
 	'SENDER_ID',\
 	'RECEIVER_ID',\
-	'RECEIVE_LEN_H',\
-	'RECEIVE_LEN_L',\
+	'RECEIVE_LEN',\
 	'RECEIVE_PACKAGE',\
 	'RECEIVE_CHECK'))
 
@@ -18,6 +24,7 @@ Recstate = Enum('Recstate',(\
 # Command枚举类型
 Command = Enum('Command',(\
     'SHAKING_HANDS',\
+    'SYNCHRONIZE_CLOCK',\
     'SET_SWIM_RUN',\
     'SET_SWIM_STOP',\
     'SET_SWIM_FORCESTOP',\
@@ -59,6 +66,9 @@ Command = Enum('Command',(\
     'SET_FLYWHEEL_CMD',\
     'SET_TARGET_POS',\
     'SET_DATASHOW_OVER',\
+    'SET_DEPTHCTL_START',\
+    'SET_DEPTHCTL_STOP',\
+    'SET_DEPTHCTL_PARAM',\
     'READ_ROBOT_STATUS',\
     'READ_CPG_PARAM',\
     'READ_SINE_MOTION_PARAM',\
@@ -104,9 +114,11 @@ class RFLink():
         self.receiver_id = b''
         self.length = 0
         self.message = b''
-        self._receive_state = Recstate.WAITING_FF1
+        self._receive_state = Recstate.WAITING_FF
         self._checksum = 0
         self._byte_count = 0
+        self.MY_ID = b'\x11'
+        self.FRIEND_ID = b'\x01'
         
 
 
@@ -117,44 +129,32 @@ class RFLink():
         :return: 当接收到一帧完整数据时,返回1;否则,返回0.
         """
 
-        if self._receive_state==Recstate.WAITING_FF1:
+        if self._receive_state==Recstate.WAITING_FF:
             if rx_data==b'\xff':
-                self._receive_state = Recstate.WAITING_FF2
+                self._receive_state = Recstate.SENDER_ID
                 self._checksum = ord(rx_data)
                 self.message = b''
                 self.length = 0
                 self._byte_count = 0
 
-        elif self._receive_state==Recstate.WAITING_FF2:
-            if rx_data == b'\xff':
-                self._receive_state = Recstate.SENDER_ID
-                self._checksum += ord(rx_data)
-            else:
-                self._receive_state = Recstate.WAITING_FF1
-
         elif self._receive_state==Recstate.SENDER_ID:
-            if rx_data == FRIEND_ID:
+            if rx_data == self.FRIEND_ID:
                 self._receive_state = Recstate.RECEIVER_ID
                 self._checksum += ord(rx_data)
             else:
-                self._receive_state = Recstate.WAITING_FF1
+                self._receive_state = Recstate.WAITING_FF
 
         elif self._receive_state==Recstate.RECEIVER_ID:
-            if rx_data == MY_ID:
-                self._receive_state = Recstate.RECEIVE_LEN_H
+            if rx_data == self.MY_ID:
+                self._receive_state = Recstate.RECEIVE_LEN
                 self._checksum += ord(rx_data)
             else:
-                self._receive_state = Recstate.WAITING_FF1
+                self._receive_state = Recstate.WAITING_FF
 
-        elif self._receive_state==Recstate.RECEIVE_LEN_H:
-            self._receive_state = Recstate.RECEIVE_LEN_L
-            self._checksum = self._checksum + ord(rx_data)
-            self.length = ord(rx_data)*256
-
-        elif self._receive_state == Recstate.RECEIVE_LEN_L:
+        elif self._receive_state == Recstate.RECEIVE_LEN:
             self._receive_state = Recstate.RECEIVE_PACKAGE
             self._checksum += ord(rx_data)
-            self.length += ord(rx_data)
+            self.length = ord(rx_data)
 
         elif self._receive_state == Recstate.RECEIVE_PACKAGE:
             self._checksum += ord(rx_data)
@@ -167,14 +167,14 @@ class RFLink():
         elif self._receive_state == Recstate.RECEIVE_CHECK:
             if rx_data == self._checksum.to_bytes(1,'big'):
                 self._checksum = 0
-                self._receive_state = Recstate.WAITING_FF1
+                self._receive_state = Recstate.WAITING_FF
                 return 1
             else:
-                self._receive_state = Recstate.WAITING_FF1
+                self._receive_state = Recstate.WAITING_FF
 
 
         else:
-            self._receive_state = Recstate.WAITING_FF1
+            self._receive_state = Recstate.WAITING_FF
 
         return 0
 
@@ -188,24 +188,23 @@ class RFLink():
         :return:符合RFLink通讯协议的消息包
         """
         first_byte = b'\xff'
-        second_byte = b'\xff'
-        third_bye = MY_ID
-        fourth_byte = FRIEND_ID
+        second_byte = self.MY_ID
+        third_byte = self.FRIEND_ID
 
         cmdbyte = cmd.to_bytes(1,'big')
         if databyte != 0 and databyte is not None:
-            datalenbyte = len(databyte).to_bytes(2,'big')
+            datalenbyte = len(databyte).to_bytes(1,'big')
         else:
             databyte = b''
-            datalenbyte = b'\x00\x00'
+            datalenbyte = b'\x00'
 
-        check_num = ord(first_byte) + ord(second_byte) + ord(third_bye) + ord(fourth_byte)
-        check_num = check_num + datalenbyte[0] + datalenbyte[1] + ord(cmdbyte)
+        check_num = ord(first_byte) + ord(second_byte) + ord(third_byte)
+        check_num = check_num + datalenbyte[0] + ord(cmdbyte)
         for data in databyte:
             check_num = check_num + data
         check_num = (check_num%255).to_bytes(1,'big')
 
-        datapack = first_byte + second_byte + third_bye + fourth_byte + datalenbyte + cmdbyte + databyte + check_num
+        datapack = first_byte + second_byte + third_byte + datalenbyte + cmdbyte + databyte + check_num
 
         return datapack
 

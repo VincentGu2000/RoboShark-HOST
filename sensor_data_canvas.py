@@ -10,7 +10,8 @@ from matplotlib.figure import Figure
 class SensorDataCanvas(FigureCanvas):
 
     def __init__(self):
-        self.fig = Figure(figsize=(8,4), dpi=100, facecolor='khaki')
+        plt.style.use('ggplot')
+        self.fig = Figure(figsize=(8,4), dpi=100)
         self.fig.subplots_adjust(left=0.15, bottom=0.2, right=0.95, top=0.95, hspace=0.2, wspace=0.2)
         #self.fig = Figure()
         self.ax = self.fig.add_subplot(111)
@@ -18,22 +19,19 @@ class SensorDataCanvas(FigureCanvas):
         FigureCanvas.setSizePolicy(self, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
 
-        self.ax.set_xlabel("Times", fontdict=dict(fontsize=16, fontweight='bold'))
-        self.ax.set_ylabel("Data", fontdict=dict(fontsize=16, fontweight='bold'))
+        prefer_color = '#8F5429'
+        self.ax.set_xlabel("Times", fontdict=dict(fontsize=16, fontweight='bold', color=prefer_color))
+        self.ax.set_ylabel("Data", fontdict=dict(fontsize=16, fontweight='bold', color=prefer_color))
 
         #self.ax.legend()
         self.ax.set_ylim(-180, 180)
         self.ax.grid(True)
-        self.ax.patch.set_facecolor("khaki")
-        self.ax.patch.set_edgecolor("white")
-
-        plt.style.use('fivethirtyeight')
-
+    
         self.curveObj = None
 
     def plot(self, datax, datay):
         if self.curveObj is None:
-            self.curveObj, = self.ax.plot(np.array(datax), np.array(datay), 'ko-')
+            self.curveObj, = self.ax.plot(np.array(datax), np.array(datay), 'o-', color='#DB6756')
         else:
             self.curveObj.set_data(np.array(datax), np.array(datay))
             try:

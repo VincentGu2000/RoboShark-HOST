@@ -1,6 +1,6 @@
 import serial
 
-class RemoraSerial():
+class RobotSerial():
     """
     串口通讯类
     """
@@ -46,7 +46,7 @@ class RemoraSerial():
 
 
 # if __name__ == "__main__":
-#     ser = RemoraSerial()
+#     ser = RobotSerial()
 #     ser.init_serial('/dev/ttyUSB1',9600)
 #     cmd = b"\xff\xff\x11\x01\x00\x00\x01\x13"
 #     ser.write_cmd(cmd)
