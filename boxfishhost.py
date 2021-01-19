@@ -1780,6 +1780,7 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
 
             plt_mutex.lock()
             self.datalist.append(showdata)
+            print(showdata)
             self.timelist.append(self.showtime)
             self.showtime = self.showtime + 1.0
             self.sensor_data_canvas.plot(self.timelist, self.datalist)
