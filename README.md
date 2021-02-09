@@ -1,36 +1,18 @@
-# RoboremoraHost
+# BoxFish Host
 
-#### Description
-机器鮣鱼Python上位机
+#### 描述
+机器箱鲀  Python上位机
 
-#### Software Architecture
-PyQt5
+#### 软件架构
 
-#### Installation
+- 软件基于PyQt5开发
+- 主程序：boxfishhost.py
+- childwindows文件夹：包含了子窗口程序
+- data文件夹：储存机器鱼返回的数据
+- document文件夹：存放文档
+- icon文件夹：存放图标
 
-1. xxxx
-2. xxxx
-3. xxxx
+#### 使用说明
 
-#### Instructions
-
-1. xxxx
-2. xxxx
-3. xxxx
-
-#### Contribution
-
-1. Fork the repository
-2. Create Feat_xxx branch
-3. Commit your code
-4. Create Pull Request
-
-
-#### Gitee Feature
-
-1. You can use Readme\_XXX.md to support different languages, such as Readme\_en.md, Readme\_zh.md
-2. Gitee blog [blog.gitee.com](https://blog.gitee.com)
-3. Explore open source project [https://gitee.com/explore](https://gitee.com/explore)
-4. The most valuable open source project [GVP](https://gitee.com/gvp)
-5. The manual of Gitee [https://gitee.com/help](https://gitee.com/help)
-6. The most popular members  [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+- 安装Python3，安装PyQT5、Pyserial库
+- 运行boxfishhost.py文件
