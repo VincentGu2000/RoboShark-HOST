@@ -1,5 +1,10 @@
 from enum import Enum
 
+class AutoCTL(Enum):
+    AutoCTL_RUN = 0
+    AutoCTL_STOP = 1
+
+
 class SwimState(Enum):
     """
     游动状态枚举类型
@@ -24,6 +29,7 @@ class RobotState:
     机器人状态类
     """
     def __init__(self):
+        self.autoctl_state = AutoCTL.AutoCTL_STOP.value
         self.swim_state = SwimState.SWIM_FORCESTOP.value
         self.gimbal_state = GimbalState.GIMBAL_STOP.value
         self.motion_amp = 0.0
@@ -48,4 +54,8 @@ class RobotState:
         self.gimbal_imu_gyrox = 0.0
         self.gimbal_imu_gyroy = 0.0
         self.gimbal_imu_gyroz = 0.0
+        self.infrared_ahead_switch = 0
+        self.infrared_left_switch = 0
+        self.infrared_right_switch = 0
+        self.infrared_down_distance = 0
 

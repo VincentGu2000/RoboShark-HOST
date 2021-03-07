@@ -145,7 +145,8 @@ QCheckBox::indicator:!enabled{
 }
 QCheckBox#imu_checkbox,
 QCheckBox#anglesensor_checkbox,
-QCheckBox#depthsensor_checkbox{
+QCheckBox#depthsensor_checkbox,
+QCheckBox#infraredsensor_checkbox{
     font-family:"Microsoft YaHei";
     font-size: 10pt;
     font-weight: bold;
@@ -162,7 +163,11 @@ QCheckBox#y_checkbox,
 QCheckBox#z_checkbox,
 QCheckBox#ang1_checkbox,
 QCheckBox#ang2_checkbox,
-QCheckBox#depth_checkbox{
+QCheckBox#depth_checkbox,
+QCheckBox#infraredsensor_checkbox_1,
+QCheckBox#infraredsensor_checkbox_2,
+QCheckBox#infraredsensor_checkbox_3,
+QCheckBox#infraredsensor_checkbox_4{
     font-family:"Microsoft YaHei";
     font-size: 8pt;
     color:#8F5429;

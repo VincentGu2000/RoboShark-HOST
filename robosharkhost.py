@@ -31,7 +31,7 @@ if(platform.system()=='Windows'):
 ###
 ### 类对象
 # 机器人状态
-boxfishstate = robotstate.RobotState()
+robosharkstate = robotstate.RobotState()
 # 串口类
 send_sertool = serctl.RobotSerial()
 recv_sertool = serctl.RobotSerial()
@@ -54,14 +54,14 @@ plt_mutex = QtCore.QMutex()
 
 
 #########################################################################################################
-def analysis_data(databytes,datalen): # 分析串口接收到的rflink数据,更新boxfishstate的状态
+def analysis_data(databytes,datalen): # 分析串口接收到的rflink数据,更新robosharkstate的状态
     """
-    本函数将串口接收到的rflink数据进行分析,解码出收到的Command,更新boxfishstate的状态
+    本函数将串口接收到的rflink数据进行分析,解码出收到的Command,更新robosharkstate的状态
     :param databytes: byte类型数据串
     :param datalen: 数据串长度
     :return: 收到Command的ID
     """
-    global boxfishstate
+    global robosharkstate
 
     try:
         command_id = databytes[0]
@@ -70,14 +70,16 @@ def analysis_data(databytes,datalen): # 分析串口接收到的rflink数据,更
 
     command = rflink.Command(command_id)
     if command is rflink.Command.READ_ROBOT_STATUS:
-        boxfishstate.swim_state = robotstate.SwimState((databytes[1]>>6)&3)
-        boxfishstate.gimbal_state = robotstate.GimbalState((databytes[1]>>4)&3)
+        robosharkstate.swim_state = robotstate.SwimState((databytes[1]>>6)&3)
+        robosharkstate.autoctl_state = robotstate.AutoCTL((databytes[1]>>5)&1)
+        print(databytes)
+        print(robosharkstate.autoctl_state)
 
     elif command is rflink.Command.READ_SINE_MOTION_PARAM:
         datatuple = struct.unpack('fff', databytes[1:])
-        boxfishstate.motion_amp = datatuple[0]
-        boxfishstate.motion_freq = datatuple[1]
-        boxfishstate.motion_offset = datatuple[2]
+        robosharkstate.motion_amp = datatuple[0]
+        robosharkstate.motion_freq = datatuple[1]
+        robosharkstate.motion_offset = datatuple[2]
 
     return command_id
 
@@ -274,9 +276,9 @@ class AnalysisDataThread(QtCore.QThread): # 数据分析线程
         self.terminate()
 
 #########################################################################################################
-class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
+class RoboSharkWindow(QtWidgets.QMainWindow): # 主窗口
     """
-    boxfishstate Qt 主窗口
+    robosharkstate Qt 主窗口
     函数大致分为四块:
     第一部分:关于UI定义
     第二部分:关于Slot和Signal的
@@ -292,7 +294,7 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
         初始化UI
         初始化信号和槽的连接
         """
-        super(BoxFishWindow, self).__init__()
+        super(RoboSharkWindow, self).__init__()
         # 创建线程
         self.receive_data_thread = ReceiveDataThread()
         self.polling_state_thread = PollingStateThread()
@@ -365,7 +367,7 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
         self.init_layout()
         self.statusBar().showMessage('串口未打开')
         self.setFixedSize(1640,800)# 设置窗体大小
-        self.setWindowTitle('Box Fish Host')  # 设置窗口标题
+        self.setWindowTitle('RoboShark Host')  # 设置窗口标题
         self.setWindowOpacity(0.98)
         self.setWindowIcon(QtGui.QIcon('icon/my/fish.ico'))
         self.show()  # 窗口显示
@@ -504,7 +506,7 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
         self.advancedcc_frame:高级控制
         :return:
         """
-        self.console_title_label = QtWidgets.QLabel('机器鱼控制台')
+        self.console_title_label = QtWidgets.QLabel('机器鲨鱼控制台')
         self.console_title_label.setObjectName('console_title_label')
         self.console_layout.addWidget(self.console_title_label, 0, 0, 1, 10, QtCore.Qt.AlignCenter)
 
@@ -579,41 +581,69 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
         self.swimcc_dive_button.setShortcut(QtCore.Qt.Key_Down)
         self.swimcc_dive_button.setFixedSize(110, self.button_height)
 
-        self.swimcc_leftfinzero_button = QtWidgets.QPushButton('左胸鳍回中(i)')
-        self.swimcc_layout.addWidget(self.swimcc_leftfinzero_button, 4, 2, 1, 1, QtCore.Qt.AlignCenter)
-        self.swimcc_leftfinzero_button.setObjectName("SET_LEFTPECFIN_ZERO")
-        self.swimcc_leftfinzero_button.setShortcut('i')
-        self.swimcc_leftfinzero_button.setFixedSize(110, self.button_height)
+        self.swimcc_pecfinzero_button = QtWidgets.QPushButton('胸鳍回中(i)')
+        self.swimcc_layout.addWidget(self.swimcc_pecfinzero_button, 4, 2, 1, 1, QtCore.Qt.AlignCenter)
+        self.swimcc_pecfinzero_button.setObjectName("SET_PECFIN_ZERO")
+        self.swimcc_pecfinzero_button.setShortcut('i')
+        self.swimcc_pecfinzero_button.setFixedSize(110, self.button_height)
 
-        self.swimcc_rightfinzero_button = QtWidgets.QPushButton('右胸鳍回中(k)')
-        self.swimcc_layout.addWidget(self.swimcc_rightfinzero_button, 5, 2, 1, 1, QtCore.Qt.AlignCenter)
-        self.swimcc_rightfinzero_button.setObjectName("SET_RIGHTPECFIN_ZERO")
-        self.swimcc_rightfinzero_button.setShortcut('k')
-        self.swimcc_rightfinzero_button.setFixedSize(110, self.button_height)
+        self.swimcc_pecfinup_button = QtWidgets.QPushButton('胸鳍+(u)')
+        self.swimcc_layout.addWidget(self.swimcc_pecfinup_button, 4, 1, 1, 1, QtCore.Qt.AlignCenter)
+        self.swimcc_pecfinup_button.setObjectName("SET_PECFIN_UP")
+        self.swimcc_pecfinup_button.setShortcut('u')
+        self.swimcc_pecfinup_button.setFixedSize(110, self.button_height)
 
-        self.swimcc_leftfinup_button = QtWidgets.QPushButton('左胸鳍+(u)')
-        self.swimcc_layout.addWidget(self.swimcc_leftfinup_button, 4, 1, 1, 1, QtCore.Qt.AlignCenter)
-        self.swimcc_leftfinup_button.setObjectName("SET_LEFTPECFIN_UP")
-        self.swimcc_leftfinup_button.setShortcut('u')
-        self.swimcc_leftfinup_button.setFixedSize(110, self.button_height)
+        self.swimcc_pecfindown_button = QtWidgets.QPushButton('胸鳍-(o)')
+        self.swimcc_layout.addWidget(self.swimcc_pecfindown_button, 4, 3, 1, 1, QtCore.Qt.AlignCenter)
+        self.swimcc_pecfindown_button.setObjectName("SET_PECFIN_DOWN")
+        self.swimcc_pecfindown_button.setShortcut('o')
+        self.swimcc_pecfindown_button.setFixedSize(110, self.button_height)
 
-        self.swimcc_leftfindown_button = QtWidgets.QPushButton('左胸鳍-(o)')
-        self.swimcc_layout.addWidget(self.swimcc_leftfindown_button, 4, 3, 1, 1, QtCore.Qt.AlignCenter)
-        self.swimcc_leftfindown_button.setObjectName("SET_LEFTPECFIN_DOWN")
-        self.swimcc_leftfindown_button.setShortcut('o')
-        self.swimcc_leftfindown_button.setFixedSize(110, self.button_height)
+        # self.swimcc_leftfinzero_button = QtWidgets.QPushButton('左胸鳍回中(i)')
+        # self.swimcc_layout.addWidget(self.swimcc_leftfinzero_button, 4, 2, 1, 1, QtCore.Qt.AlignCenter)
+        # self.swimcc_leftfinzero_button.setObjectName("SET_LEFTPECFIN_ZERO")
+        # self.swimcc_leftfinzero_button.setShortcut('i')
+        # self.swimcc_leftfinzero_button.setFixedSize(110, self.button_height)
 
-        self.swimcc_rightfinup_button = QtWidgets.QPushButton('右胸鳍+(j)')
-        self.swimcc_layout.addWidget(self.swimcc_rightfinup_button, 5, 1, 1, 1, QtCore.Qt.AlignCenter)
-        self.swimcc_rightfinup_button.setObjectName("SET_RIGHTPECFIN_UP")
-        self.swimcc_rightfinup_button.setShortcut('j')
-        self.swimcc_rightfinup_button.setFixedSize(110, self.button_height)
+        # self.swimcc_rightfinzero_button = QtWidgets.QPushButton('右胸鳍回中(k)')
+        # self.swimcc_layout.addWidget(self.swimcc_rightfinzero_button, 5, 2, 1, 1, QtCore.Qt.AlignCenter)
+        # self.swimcc_rightfinzero_button.setObjectName("SET_RIGHTPECFIN_ZERO")
+        # self.swimcc_rightfinzero_button.setShortcut('k')
+        # self.swimcc_rightfinzero_button.setFixedSize(110, self.button_height)
 
-        self.swimcc_rightfindown_button = QtWidgets.QPushButton('右胸鳍-(l)')
-        self.swimcc_layout.addWidget(self.swimcc_rightfindown_button, 5, 3, 1, 1, QtCore.Qt.AlignCenter)
-        self.swimcc_rightfindown_button.setObjectName("SET_RIGHTPECFIN_DOWN")
-        self.swimcc_rightfindown_button.setShortcut('l')
-        self.swimcc_rightfindown_button.setFixedSize(110, self.button_height)
+        # self.swimcc_leftfinup_button = QtWidgets.QPushButton('左胸鳍+(u)')
+        # self.swimcc_layout.addWidget(self.swimcc_leftfinup_button, 4, 1, 1, 1, QtCore.Qt.AlignCenter)
+        # self.swimcc_leftfinup_button.setObjectName("SET_LEFTPECFIN_UP")
+        # self.swimcc_leftfinup_button.setShortcut('u')
+        # self.swimcc_leftfinup_button.setFixedSize(110, self.button_height)
+
+        # self.swimcc_leftfindown_button = QtWidgets.QPushButton('左胸鳍-(o)')
+        # self.swimcc_layout.addWidget(self.swimcc_leftfindown_button, 4, 3, 1, 1, QtCore.Qt.AlignCenter)
+        # self.swimcc_leftfindown_button.setObjectName("SET_LEFTPECFIN_DOWN")
+        # self.swimcc_leftfindown_button.setShortcut('o')
+        # self.swimcc_leftfindown_button.setFixedSize(110, self.button_height)
+
+        # self.swimcc_rightfinup_button = QtWidgets.QPushButton('右胸鳍+(j)')
+        # self.swimcc_layout.addWidget(self.swimcc_rightfinup_button, 5, 1, 1, 1, QtCore.Qt.AlignCenter)
+        # self.swimcc_rightfinup_button.setObjectName("SET_RIGHTPECFIN_UP")
+        # self.swimcc_rightfinup_button.setShortcut('j')
+        # self.swimcc_rightfinup_button.setFixedSize(110, self.button_height)
+
+        # self.swimcc_rightfindown_button = QtWidgets.QPushButton('右胸鳍-(l)')
+        # self.swimcc_layout.addWidget(self.swimcc_rightfindown_button, 5, 3, 1, 1, QtCore.Qt.AlignCenter)
+        # self.swimcc_rightfindown_button.setObjectName("SET_RIGHTPECFIN_DOWN")
+        # self.swimcc_rightfindown_button.setShortcut('l')
+        # self.swimcc_rightfindown_button.setFixedSize(110, self.button_height)
+
+        self.swimcc_startautoctl_button = QtWidgets.QPushButton('开启自驾模式')
+        self.swimcc_layout.addWidget(self.swimcc_startautoctl_button, 5, 2, 1, 1, QtCore.Qt.AlignCenter)
+        self.swimcc_startautoctl_button.setObjectName("SET_AUTOCTL_RUN")
+        self.swimcc_startautoctl_button.setFixedSize(110, self.button_height)
+
+        self.swimcc_stopautoctl_button = QtWidgets.QPushButton('关闭自驾模式')
+        self.swimcc_layout.addWidget(self.swimcc_stopautoctl_button, 5, 3, 1, 1, QtCore.Qt.AlignCenter)
+        self.swimcc_stopautoctl_button.setObjectName("SET_AUTOCTL_STOP")
+        self.swimcc_stopautoctl_button.setFixedSize(110, self.button_height)
 
         # CPG参数设置
         self.cpgcc_frame = QtWidgets.QFrame()
@@ -699,29 +729,29 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
         self.advancedcc_frame.setLayout(self.advancedcc_layout)
         self.console_layout.addWidget(self.advancedcc_frame, 1, 7, 10, 3)
 
-        self.advancedcc_fixed_label = QtWidgets.QLabel('高级控制功能')
+        self.advancedcc_fixed_label = QtWidgets.QLabel('高级功能')
         self.advancedcc_fixed_label.setObjectName('advancedcc_fixed_label')
         self.advancedcc_layout.addWidget(self.advancedcc_fixed_label, 1, 0, 1, 3, QtCore.Qt.AlignCenter)
         
         # 云台控制按钮
         self.open_gimbal_control_button = QtWidgets.QPushButton('云台控制')
-        self.advancedcc_layout.addWidget(self.open_gimbal_control_button, 2, 0, 1, 1, QtCore.Qt.AlignCenter)
+        # self.advancedcc_layout.addWidget(self.open_gimbal_control_button, 2, 0, 1, 1, QtCore.Qt.AlignCenter)
         self.open_gimbal_control_button.setFixedSize(100, self.button_height)
         # 深度控制按钮
         self.open_depth_control_button = QtWidgets.QPushButton('深度控制')
-        self.advancedcc_layout.addWidget(self.open_depth_control_button, 3, 0, 1, 1, QtCore.Qt.AlignCenter)
+        # self.advancedcc_layout.addWidget(self.open_depth_control_button, 3, 0, 1, 1, QtCore.Qt.AlignCenter)
         self.open_depth_control_button.setFixedSize(100, self.button_height)
         # 位置控制按钮
         self.open_position_control_button = QtWidgets.QPushButton('位置控制')
-        self.advancedcc_layout.addWidget(self.open_position_control_button, 3, 1, 1, 1, QtCore.Qt.AlignCenter)
+        # self.advancedcc_layout.addWidget(self.open_position_control_button, 3, 1, 1, 1, QtCore.Qt.AlignCenter)
         self.open_position_control_button.setFixedSize(100, self.button_height)
         # 速度控制按钮
         self.open_velocity_control_button = QtWidgets.QPushButton('速度控制')
-        self.advancedcc_layout.addWidget(self.open_velocity_control_button, 3, 2, 1, 1, QtCore.Qt.AlignCenter)
+        # self.advancedcc_layout.addWidget(self.open_velocity_control_button, 3, 2, 1, 1, QtCore.Qt.AlignCenter)
         self.open_velocity_control_button.setFixedSize(100, self.button_height)
         # 跟踪控制按钮
         self.open_targettracking_control_button = QtWidgets.QPushButton('跟踪控制')
-        self.advancedcc_layout.addWidget(self.open_targettracking_control_button, 4, 0, 1, 1, QtCore.Qt.AlignCenter)
+        # self.advancedcc_layout.addWidget(self.open_targettracking_control_button, 4, 0, 1, 1, QtCore.Qt.AlignCenter)
         self.open_targettracking_control_button.setFixedSize(100, self.button_height)
 
 
@@ -750,7 +780,7 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
         self.cmdshell_text_browser.setObjectName('cmdshell_text_browser')
         self.cmdshell_text_browser.setFixedSize(400, 300)
         self.cmdshell_text_layout.addWidget(self.cmdshell_text_browser, 1, 0, 8, 10, QtCore.Qt.AlignCenter)
-        self.cmdshell_text_browser.append("<font color='Cyan'>boxfishstate-host:~$&nbsp;</font> ")
+        self.cmdshell_text_browser.append("<font color='Cyan'>robosharkstate-host:~$&nbsp;</font> ")
 
         self.cmdshell_editor_label = QtWidgets.QLabel('输入命令')
         self.cmdshell_editor_label.setObjectName('cmdshell_editor_label')
@@ -876,9 +906,9 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
         self.serial_layout.addWidget(self.fishid_label, 5, 0, 1, 1, QtCore.Qt.AlignCenter)
 
         self.fishid_combo = QtWidgets.QComboBox()
-        for robot_id in rflink.BoxFishID:
+        for robot_id in rflink.FishID:
             self.fishid_combo.addItem(robot_id.name)
-        self.fishid_combo.setCurrentText('BoxFish_1')
+        self.fishid_combo.setCurrentText('Fish_1')
         self.fishid_combo.setFixedSize(120, self.button_height)
         self.serial_layout.addWidget(self.fishid_combo, 5, 1, 1, 1, QtCore.Qt.AlignLeft)
 
@@ -989,32 +1019,58 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
         self.depth_checkbox.setChecked(False)
         self.depth_checkbox.setEnabled(False)
 
+        self.infraredsensor_checkbox = QtWidgets.QCheckBox("红外传感器")
+        self.infraredsensor_checkbox.setObjectName('infraredsensor_checkbox')
+        self.datasc_layout.addWidget(self.infraredsensor_checkbox, 10, 0, 1, 3, QtCore.Qt.AlignCenter)
+
+        self.infraredswitch_ahead_checkbox = QtWidgets.QCheckBox("前侧")
+        self.infraredswitch_ahead_checkbox.setObjectName('infraredsensor_checkbox_1')
+        self.datasc_layout.addWidget(self.infraredswitch_ahead_checkbox, 11, 0, 1, 1, QtCore.Qt.AlignLeft)
+
+        self.infraredswitch_left_checkbox = QtWidgets.QCheckBox("左侧")
+        self.infraredswitch_left_checkbox.setObjectName('infraredsensor_checkbox_2')
+        self.datasc_layout.addWidget(self.infraredswitch_left_checkbox, 11, 1, 1, 1, QtCore.Qt.AlignLeft)
+
+        self.infraredswitch_right_checkbox = QtWidgets.QCheckBox("右侧")
+        self.infraredswitch_right_checkbox.setObjectName('infraredsensor_checkbox_3')
+        self.datasc_layout.addWidget(self.infraredswitch_right_checkbox, 11, 2, 1, 1, QtCore.Qt.AlignLeft)
+
+        self.infrareddistance_checkbox = QtWidgets.QCheckBox("下距")
+        self.infrareddistance_checkbox.setObjectName('infraredsensor_checkbox_4')
+        self.datasc_layout.addWidget(self.infrareddistance_checkbox, 12, 0, 1, 1, QtCore.Qt.AlignLeft)
+
+        self.infraredsensor_checkbox.setChecked(False)
+        self.infraredswitch_ahead_checkbox.setEnabled(False)
+        self.infraredswitch_left_checkbox.setEnabled(False)
+        self.infraredswitch_right_checkbox.setEnabled(False)
+        self.infrareddistance_checkbox.setEnabled(False)
+
         self.datashow_start_button = QtWidgets.QPushButton('开始显示')
-        self.datashow_start_button.setFixedSize(80, self.button_height)
-        self.datasc_layout.addWidget(self.datashow_start_button, 10, 0, 1, 1, QtCore.Qt.AlignCenter)
+        self.datashow_start_button.setFixedSize(80, self.button_height-10)
+        self.datasc_layout.addWidget(self.datashow_start_button, 13, 0, 1, 1, QtCore.Qt.AlignCenter)
 
         self.datashow_stop_button = QtWidgets.QPushButton('停止显示')
-        self.datashow_stop_button.setFixedSize(80, self.button_height)
-        self.datasc_layout.addWidget(self.datashow_stop_button, 10, 1, 1, 1, QtCore.Qt.AlignCenter)
+        self.datashow_stop_button.setFixedSize(80, self.button_height-10)
+        self.datasc_layout.addWidget(self.datashow_stop_button, 13, 1, 1, 1, QtCore.Qt.AlignCenter)
         self.datashow_stop_button.setObjectName("SET_DATASHOW_OVER")
 
         self.datashow_clear_button = QtWidgets.QPushButton('清空界面')
-        self.datashow_clear_button.setFixedSize(80, self.button_height)
-        self.datasc_layout.addWidget(self.datashow_clear_button, 10, 2, 1, 1, QtCore.Qt.AlignCenter)
+        self.datashow_clear_button.setFixedSize(80, self.button_height-10)
+        self.datasc_layout.addWidget(self.datashow_clear_button, 13, 2, 1, 1, QtCore.Qt.AlignCenter)
 
         self.datashow_storage_button = QtWidgets.QPushButton('记录数据')
-        self.datashow_storage_button.setFixedSize(80, self.button_height)
-        self.datasc_layout.addWidget(self.datashow_storage_button, 11, 0, 1, 1, QtCore.Qt.AlignCenter)
+        self.datashow_storage_button.setFixedSize(80, self.button_height-10)
+        self.datasc_layout.addWidget(self.datashow_storage_button, 14, 0, 1, 1, QtCore.Qt.AlignCenter)
         self.datashow_storage_button.setObjectName("GOTO_STORAGE_DATA")
 
         self.datashow_stopstorage_button = QtWidgets.QPushButton('停止记录')
-        self.datashow_stopstorage_button.setFixedSize(80, self.button_height)
-        self.datasc_layout.addWidget(self.datashow_stopstorage_button, 11, 1, 1, 1, QtCore.Qt.AlignCenter)
+        self.datashow_stopstorage_button.setFixedSize(80, self.button_height-10)
+        self.datasc_layout.addWidget(self.datashow_stopstorage_button, 14, 1, 1, 1, QtCore.Qt.AlignCenter)
         self.datashow_stopstorage_button.setObjectName("GOTO_STOP_STORAGE")
 
         self.datashow_save_button = QtWidgets.QPushButton('回传数据')
-        self.datashow_save_button.setFixedSize(80, self.button_height)
-        self.datasc_layout.addWidget(self.datashow_save_button, 11, 2, 1, 1, QtCore.Qt.AlignCenter)
+        self.datashow_save_button.setFixedSize(80, self.button_height-10)
+        self.datasc_layout.addWidget(self.datashow_save_button, 14, 2, 1, 1, QtCore.Qt.AlignCenter)
         self.datashow_save_button.setObjectName("GOTO_SEND_DATA")
 
 
@@ -1044,12 +1100,17 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
         self.swimcc_turnright_button.clicked.connect(self.console_button_clicked)
         self.swimcc_dive_button.clicked.connect(self.console_button_clicked)
         self.swimcc_raise_button.clicked.connect(self.console_button_clicked)
-        self.swimcc_leftfinzero_button.clicked.connect(self.console_button_clicked)
-        self.swimcc_leftfinup_button.clicked.connect(self.console_button_clicked)
-        self.swimcc_leftfindown_button.clicked.connect(self.console_button_clicked)
-        self.swimcc_rightfinzero_button.clicked.connect(self.console_button_clicked)
-        self.swimcc_rightfinup_button.clicked.connect(self.console_button_clicked)
-        self.swimcc_rightfindown_button.clicked.connect(self.console_button_clicked)
+        self.swimcc_pecfinzero_button.clicked.connect(self.console_button_clicked)
+        self.swimcc_pecfinup_button.clicked.connect(self.console_button_clicked)
+        self.swimcc_pecfindown_button.clicked.connect(self.console_button_clicked)
+        # self.swimcc_leftfinzero_button.clicked.connect(self.console_button_clicked)
+        # self.swimcc_leftfinup_button.clicked.connect(self.console_button_clicked)
+        # self.swimcc_leftfindown_button.clicked.connect(self.console_button_clicked)
+        # self.swimcc_rightfinzero_button.clicked.connect(self.console_button_clicked)
+        # self.swimcc_rightfinup_button.clicked.connect(self.console_button_clicked)
+        # self.swimcc_rightfindown_button.clicked.connect(self.console_button_clicked)
+        self.swimcc_stopautoctl_button.clicked.connect(self.console_button_clicked)
+        self.swimcc_startautoctl_button.clicked.connect(self.console_button_clicked)
         self.cpgcc_amp_button.clicked.connect(self.console_button_clicked)
         self.cpgcc_freq_button.clicked.connect(self.console_button_clicked)
         self.cpgcc_offset_button.clicked.connect(self.console_button_clicked)
@@ -1090,6 +1151,13 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
         ## 深度传感器
         self.depthsensor_checkbox.stateChanged.connect(self.depthsensor_checkbox_ctl)
         self.depth_checkbox.stateChanged.connect(self.depth_checkbox_ctl)
+        ## 红外传感器
+        self.infraredsensor_checkbox.stateChanged.connect(self.infraredsensor_checkbox_ctl)
+        self.infraredswitch_ahead_checkbox.stateChanged.connect(self.infraredswitch_ahead_checkbox_ctl)
+        self.infraredswitch_left_checkbox.stateChanged.connect(self.infraredswitch_left_checkbox_ctl)
+        self.infraredswitch_right_checkbox.stateChanged.connect(self.infraredswitch_right_checkbox_ctl)
+        self.infrareddistance_checkbox.stateChanged.connect(self.infrareddistance_checkbox_ctl)
+        
 
     # 控制台按钮回调函数
     def console_button_clicked(self):
@@ -1100,10 +1168,10 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
         :return:
         """
         sender_button = self.sender()
-        rftool.FRIEND_ID = rflink.BoxFishID[self.fishid_combo.currentText()].value
+        rftool.FRIEND_ID = rflink.FishID[self.fishid_combo.currentText()].value
         cmd = rflink.Command[sender_button.objectName()].value
         if rflink.Command[sender_button.objectName()] is rflink.Command.SHAKING_HANDS:
-            if rflink.BoxFishID[self.fishid_combo.currentText()] is rflink.BoxFishID.BOXFISH_ALL: # BoxFish_all
+            if rflink.FishID[self.fishid_combo.currentText()] is rflink.FishID.FISH_ALL: # 
                 cmd = rflink.Command.SYNCHRONIZE_CLOCK.value
             data = 0
         elif rflink.Command[sender_button.objectName()] is rflink.Command.SET_SINE_MOTION_AMP:
@@ -1137,7 +1205,7 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
         :return:
         """
         # 获取用户输入的指令
-        prefix = "<font color='Cyan'>boxfishstate-host:~$&nbsp;</font> "
+        prefix = "<font color='Cyan'>robosharkstate-host:~$&nbsp;</font> "
         instr = self.cmdshell_text_editor.text()
         # self.cmdshell_text_editor.clear() # 清除编辑区的文字
         self.cmdshell_text_browser.append(prefix + instr)
@@ -1314,6 +1382,28 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
             else:
                 self.statusBar().showMessage('未选定需要显示的数据')
                 return
+
+        ### 红外传感器
+        elif self.datashow_sensor_type == 7:
+            if self.datashow_sensor_id != 0:
+                cmdvalue = rflink.Command["READ_INFRARED_SWITCH"].value
+            else:
+                self.statusBar().showMessage('未选定需要显示的数据')
+                return
+            
+            # 判断读取哪个传感器
+            if self.datashow_sensor_id == 1:
+                data = 1
+            elif self.datashow_sensor_id == 2:
+                data = 2
+            elif self.datashow_sensor_id == 3:
+                data = 3
+            elif self.datashow_sensor_id == 4:
+                cmdvalue = rflink.Command["READ_INFRARED_DISTANCE"].value
+            else:
+                self.statusBar().showMessage('未选定需要显示的数据')
+                return
+
         else:
             self.statusBar().showMessage('未选定需要显示的数据')
             return
@@ -1345,7 +1435,12 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
         # 深度传感器
         self.depthsensor_checkbox.setEnabled(False)
         self.depth_checkbox.setEnabled(False)
-
+        # 红外传感器
+        self.infraredsensor_checkbox.setEnabled(False)
+        self.infraredswitch_ahead_checkbox.setEnabled(False)
+        self.infraredswitch_left_checkbox.setEnabled(False)
+        self.infraredswitch_right_checkbox.setEnabled(False)
+        self.infrareddistance_checkbox.setEnabled(False)
 
     def datashow_stop_button_clicked(self):
         datapack = rftool.RFLink_packdata(rflink.Command["SET_DATASHOW_OVER"].value, None)
@@ -1361,6 +1456,7 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
         self.imu_checkbox.setEnabled(True)
         self.anglesensor_checkbox.setEnabled(True)
         self.depthsensor_checkbox.setEnabled(True)
+        self.infraredsensor_checkbox.setEnabled(True)
         if self.datashow_sensor_type == 1:
             self.imu1_checkbox.setEnabled(True)
             self.imu2_checkbox.setEnabled(True)
@@ -1375,6 +1471,11 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
             self.ang2_checkbox.setEnabled(True)
         elif self.datashow_sensor_type == 5:        # 深度传感器
             self.depth_checkbox.setEnabled(True)
+        elif self.datashow_sensor_type == 7:
+            self.infraredswitch_ahead_checkbox.setEnabled(True)
+            self.infraredswitch_left_checkbox.setEnabled(True)
+            self.infraredswitch_right_checkbox.setEnabled(True)
+            self.infrareddistance_checkbox.setEnabled(True)
         else:
             return
 
@@ -1504,7 +1605,12 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
             # 深度传感器
             self.depthsensor_checkbox.setChecked(False)
             self.depth_checkbox.setEnabled(False)
-
+            # 红外传感器
+            self.infraredsensor_checkbox.setChecked(False)
+            self.infraredswitch_ahead_checkbox.setEnabled(False)
+            self.infraredswitch_left_checkbox.setEnabled(False)
+            self.infraredswitch_right_checkbox.setEnabled(False)
+            self.infrareddistance_checkbox.setEnabled(False)
             ## 刷新datashow状态变量
             ### datashow_sensor_type
             self.datashow_sensor_type = 1
@@ -1621,6 +1727,12 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
             # 深度传感器
             self.depthsensor_checkbox.setChecked(False)
             self.depth_checkbox.setEnabled(False)
+            # 红外传感器
+            self.infraredsensor_checkbox.setChecked(False)
+            self.infraredswitch_ahead_checkbox.setEnabled(False)
+            self.infraredswitch_left_checkbox.setEnabled(False)
+            self.infraredswitch_right_checkbox.setEnabled(False)
+            self.infrareddistance_checkbox.setEnabled(False)
 
             ## 刷新datashow状态变量
             ### datashow_sensor_type
@@ -1671,6 +1783,12 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
             # 深度传感器
             self.depthsensor_checkbox.setChecked(True)
             self.depth_checkbox.setEnabled(True)
+            # 红外传感器
+            self.infraredsensor_checkbox.setChecked(False)
+            self.infraredswitch_ahead_checkbox.setEnabled(False)
+            self.infraredswitch_left_checkbox.setEnabled(False)
+            self.infraredswitch_right_checkbox.setEnabled(False)
+            self.infrareddistance_checkbox.setEnabled(False)
 
             ## 刷新datashow状态变量
             ### datashow_sensor_type
@@ -1689,6 +1807,83 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
             self.datashow_sensor_type = 5
             self.datashow_sensor_id = 1
 
+    # 红外传感器部分
+    def infraredsensor_checkbox_ctl(self):
+
+        if self.infraredsensor_checkbox.isChecked():
+            # IMU
+            self.imu_checkbox.setChecked(False)
+            self.imu1_checkbox.setEnabled(False)
+            self.imu2_checkbox.setEnabled(False)
+            self.accel_checkbox.setEnabled(False)
+            self.gyro_checkbox.setEnabled(False)
+            self.angle_checkbox.setEnabled(False)
+            self.x_checkbox.setEnabled(False)
+            self.y_checkbox.setEnabled(False)
+            self.z_checkbox.setEnabled(False)
+            # 云台角度
+            self.anglesensor_checkbox.setChecked(False)
+            self.ang1_checkbox.setEnabled(False)
+            self.ang2_checkbox.setEnabled(False)
+            # 深度传感器
+            self.depthsensor_checkbox.setChecked(False)
+            self.depth_checkbox.setEnabled(False)
+            # 红外传感器
+            self.infraredsensor_checkbox.setChecked(True)
+            self.infraredswitch_ahead_checkbox.setEnabled(True)
+            self.infraredswitch_left_checkbox.setEnabled(True)
+            self.infraredswitch_right_checkbox.setEnabled(True)
+            self.infrareddistance_checkbox.setEnabled(True)
+            
+            ## 刷新datashow状态变量
+            ### datashow_sensor_type
+            self.datashow_sensor_type = 7
+            self.datashow_sensor_id = 0
+            self.datashow_sensor_datatype = 0
+            self.datashow_sensor_dataaxis = 0
+            ### datashow_sensor_id
+            if self.infraredswitch_ahead_checkbox.isChecked():
+                self.datashow_sensor_id = 1
+            elif self.infraredswitch_left_checkbox.isChecked():
+                self.datashow_sensor_id = 2
+            elif self.infraredswitch_right_checkbox.isChecked():
+                self.datashow_sensor_id = 3
+            elif self.infrareddistance_checkbox.isChecked():
+                self.datashow_sensor_id = 4
+            else:
+                self.datashow_sensor_id = 0
+
+    def infraredswitch_ahead_checkbox_ctl(self):
+        if self.infraredswitch_ahead_checkbox.isChecked():
+            self.infraredswitch_left_checkbox.setChecked(False)
+            self.infraredswitch_right_checkbox.setChecked(False)
+            self.infrareddistance_checkbox.setChecked(False)
+            self.datashow_sensor_type = 7
+            self.datashow_sensor_id = 1
+
+    def infraredswitch_left_checkbox_ctl(self):
+        if self.infraredswitch_left_checkbox.isChecked():
+            self.infraredswitch_ahead_checkbox.setChecked(False)
+            self.infraredswitch_right_checkbox.setChecked(False)
+            self.infrareddistance_checkbox.setChecked(False)
+            self.datashow_sensor_type = 7
+            self.datashow_sensor_id = 2
+    
+    def infraredswitch_right_checkbox_ctl(self):
+        if self.infraredswitch_right_checkbox.isChecked():
+            self.infraredswitch_left_checkbox.setChecked(False)
+            self.infraredswitch_ahead_checkbox.setChecked(False)
+            self.infrareddistance_checkbox.setChecked(False)
+            self.datashow_sensor_type = 7
+            self.datashow_sensor_id = 3
+    
+    def infrareddistance_checkbox_ctl(self):
+        if self.infrareddistance_checkbox.isChecked():
+            self.infraredswitch_left_checkbox.setChecked(False)
+            self.infraredswitch_right_checkbox.setChecked(False)
+            self.infraredswitch_ahead_checkbox.setChecked(False)
+            self.datashow_sensor_type = 7
+            self.datashow_sensor_id = 4
     #####################################################################################################
     #####################################################################################################
     ## 第三部分:下位机数据处理,就一个函数
@@ -1701,7 +1896,7 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
         :param command_id:接收的Command的ID
         :return:
         """
-        global boxfishstate
+        global robosharkstate
         global rftool
 
         if rflink.Command(command_id) is rflink.Command.SHAKING_HANDS:
@@ -1719,32 +1914,37 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
             rm_mutex.lock()
             pal = QtGui.QPalette()
             self.swimstate_label.setAutoFillBackground(True)
-            if boxfishstate.swim_state is robotstate.SwimState.SWIM_FORCESTOP:
-                self.swimstate_label.setText('停止')
+            if robosharkstate.autoctl_state is robotstate.AutoCTL.AutoCTL_STOP:
+                if robosharkstate.swim_state is robotstate.SwimState.SWIM_FORCESTOP:
+                    self.swimstate_label.setText('停止')
+                    pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.red)
+                    self.swimstate_label.setPalette(pal)
+                elif robosharkstate.swim_state is robotstate.SwimState.SWIM_STOP:
+                    self.swimstate_label.setText('暂停')
+                    pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.blue)
+                    self.swimstate_label.setPalette(pal)
+                elif robosharkstate.swim_state is robotstate.SwimState.SWIM_RUN:
+                    self.swimstate_label.setText('运行')
+                    pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.green)
+                    self.swimstate_label.setPalette(pal)
+                elif robosharkstate.swim_state is robotstate.SwimState.SWIM_INIT:
+                    self.swimstate_label.setText('初始化')
+                    pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.gray)
+                    self.swimstate_label.setPalette(pal)
+            else:
+                self.swimstate_label.setText('Auto')
                 pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.red)
                 self.swimstate_label.setPalette(pal)
-            elif boxfishstate.swim_state is robotstate.SwimState.SWIM_STOP:
-                self.swimstate_label.setText('暂停')
-                pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.blue)
-                self.swimstate_label.setPalette(pal)
-            elif boxfishstate.swim_state is robotstate.SwimState.SWIM_RUN:
-                self.swimstate_label.setText('运行')
-                pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.green)
-                self.swimstate_label.setPalette(pal)
-            elif boxfishstate.swim_state is robotstate.SwimState.SWIM_INIT:
-                self.swimstate_label.setText('初始化')
-                pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.gray)
-                self.swimstate_label.setPalette(pal)
 
-            if boxfishstate.gimbal_state is robotstate.GimbalState.GIMBAL_STOP:
+            if robosharkstate.gimbal_state is robotstate.GimbalState.GIMBAL_STOP:
                 self.GCBW.gimbalstate_label.setText('停止')
                 pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.red)
                 self.GCBW.gimbalstate_label.setPalette(pal)
-            elif boxfishstate.gimbal_state is robotstate.GimbalState.GIMBAL_RUN:
+            elif robosharkstate.gimbal_state is robotstate.GimbalState.GIMBAL_RUN:
                 self.GCBW.gimbalstate_label.setText('运行')
                 pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.green)
                 self.GCBW.gimbalstate_label.setPalette(pal)
-            elif boxfishstate.gimbal_state is robotstate.GimbalState.GIMBAL_ZERO:
+            elif robosharkstate.gimbal_state is robotstate.GimbalState.GIMBAL_ZERO:
                 self.GCBW.gimbalstate_label.setText('归中')
                 pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.yellow)
                 self.GCBW.gimbalstate_label.setPalette(pal)
@@ -1753,9 +1953,9 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
 
         elif rflink.Command(command_id) is rflink.Command.READ_SINE_MOTION_PARAM:
             rm_mutex.lock()
-            self.cpgamp_label.setText(str(round(boxfishstate.motion_amp,2)))
-            self.cpgfreq_label.setText(str(round(boxfishstate.motion_freq,2)))
-            self.cpgoffset_label.setText(str(round(boxfishstate.motion_offset,2)))
+            self.cpgamp_label.setText(str(round(robosharkstate.motion_amp,2)))
+            self.cpgfreq_label.setText(str(round(robosharkstate.motion_freq,2)))
+            self.cpgoffset_label.setText(str(round(robosharkstate.motion_offset,2)))
             rm_mutex.unlock()
             pal = QtGui.QPalette()
             pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.blue)
@@ -1764,7 +1964,7 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
             self.cpgoffset_label.setPalette(pal)
 
         elif command_id >= rflink.Command.READ_IMU1_ATTITUDE.value and \
-            command_id <= rflink.Command.READ_DEPTH.value:
+            command_id <= rflink.Command.READ_INFRARED_DISTANCE.value:
 
             rf_mutex.lock() 
             try:
@@ -1772,6 +1972,8 @@ class BoxFishWindow(QtWidgets.QMainWindow): # 主窗口
                     showdata = struct.unpack('f', rftool.message[1:])[0]
                 elif rftool.length == 2:
                     showdata = struct.unpack('H', rftool.message[1:])[0]
+                elif rftool.length == 1:
+                    showdata = struct.unpack('B', rftool.message[1:])[0]
                 else:
                     showdata = 0
             except:
@@ -1858,10 +2060,10 @@ if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv) 
 
     # 创建窗体对象
-    RRW = BoxFishWindow()  
+    RRW = RoboSharkWindow()  
     
     # 美化窗体对象
-    with open('boxfishhost.qss') as f:
+    with open('robosharkhost.qss') as f:
         qss = f.read()
     RRW.setStyleSheet(qss)
 

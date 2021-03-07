@@ -2,13 +2,13 @@ from enum import Enum
 
 
 
-BoxFishID = Enum('BoxFish_id',({\
-    'BOXFISH_ALL':b'\x00',\
-	'BoxFish_1':b'\x01',\
-    'BoxFish_2':b'\x02',\
-	'BoxFish_3':b'\x03',\
-	'BoxFish_4':b'\x04',\
-	'BoxFish_5':b'\x05'}))
+FishID = Enum('Fish_id',({\
+    'FISH_ALL':b'\x00',\
+	'Fish_1':b'\x01',\
+    'Fish_2':b'\x02',\
+	'Fish_3':b'\x03',\
+	'Fish_4':b'\x04',\
+	'Fish_5':b'\x05'}))
 
 
 # Recstate枚举类型
@@ -41,6 +41,9 @@ Command = Enum('Command',(\
     'SET_SINE_MOTION_AMP',\
 	'SET_SINE_MOTION_FREQ',\
 	'SET_SINE_MOTION_OFFSET',\
+    'SET_PECFIN_UP',\
+    'SET_PECFIN_ZERO',\
+    'SET_PECFIN_DOWN',\
     'SET_LEFTPECFIN_UP',\
     'SET_LEFTPECFIN_ZERO',\
     'SET_LEFTPECFIN_DOWN',\
@@ -69,6 +72,8 @@ Command = Enum('Command',(\
     'SET_DEPTHCTL_START',\
     'SET_DEPTHCTL_STOP',\
     'SET_DEPTHCTL_PARAM',\
+    'SET_AUTOCTL_RUN',\
+    'SET_AUTOCTL_STOP',\
     'READ_ROBOT_STATUS',\
     'READ_CPG_PARAM',\
     'READ_SINE_MOTION_PARAM',\
@@ -85,6 +90,8 @@ Command = Enum('Command',(\
     'READ_FLYWHEEL_ANGLE',\
     'READ_FLYWHEEL_VEL',\
     'READ_DEPTH',\
+    'READ_INFRARED_SWITCH',\
+    'READ_INFRARED_DISTANCE',\
     'READ_FILE_LIST',\
     'GOTO_ATTACH',\
     'GOTO_DETACH',\
