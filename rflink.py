@@ -1,6 +1,10 @@
+# python3
+# @Time    : 2021.05.18
+# @Author  : 张鹏飞
+# @FileName: rflink.py
+# @Software: 机器鲨鱼上位机
+
 from enum import Enum
-
-
 
 FishID = Enum('Fish_id',({\
     'FISH_ALL':b'\x00',\
@@ -74,6 +78,11 @@ Command = Enum('Command',(\
     'SET_DEPTHCTL_PARAM',\
     'SET_AUTOCTL_RUN',\
     'SET_AUTOCTL_STOP',\
+    'SET_AN_EVENT',\
+    'SET_TAIL_AMP1',\
+    'SET_TAIL_AMP2',\
+    'SET_TAIL_AMP3',\
+    'SET_TAIL_AMP4',\
     'READ_ROBOT_STATUS',\
     'READ_CPG_PARAM',\
     'READ_SINE_MOTION_PARAM',\

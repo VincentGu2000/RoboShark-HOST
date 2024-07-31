@@ -1,3 +1,9 @@
+# python3
+# @Time    : 2021.05.18
+# @Author  : 张鹏飞
+# @FileName: robotstate.py
+# @Software: 机器鲨鱼上位机
+
 from enum import Enum
 
 class AutoCTL(Enum):
@@ -32,6 +38,7 @@ class RobotState:
         self.autoctl_state = AutoCTL.AutoCTL_STOP.value
         self.swim_state = SwimState.SWIM_FORCESTOP.value
         self.gimbal_state = GimbalState.GIMBAL_STOP.value
+        self.water_state = 0
         self.motion_amp = 0.0
         self.motion_freq = 0.0
         self.motion_offset = 0.0

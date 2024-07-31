@@ -1,6 +1,13 @@
+# python3
+# @Time    : 2021.05.18
+# @Author  : 张鹏飞
+# @FileName: robosharkhost.py
+# @Software: 机器鲨鱼上位机
+
 import sys
 import time
 import serial
+import serial.tools.list_ports
 import struct
 import copy
 import platform
@@ -72,8 +79,9 @@ def analysis_data(databytes,datalen): # 分析串口接收到的rflink数据,更
     if command is rflink.Command.READ_ROBOT_STATUS:
         robosharkstate.swim_state = robotstate.SwimState((databytes[1]>>6)&3)
         robosharkstate.autoctl_state = robotstate.AutoCTL((databytes[1]>>5)&1)
+        robosharkstate.water_state = ((databytes[1] >> 4) & 1)
         print(databytes)
-        print(robosharkstate.autoctl_state)
+        print(robosharkstate.water_state)
 
     elif command is rflink.Command.READ_SINE_MOTION_PARAM:
         datatuple = struct.unpack('fff', databytes[1:])
@@ -172,7 +180,7 @@ class ReceiveDataThread(QtCore.QThread): # 数据接收线程
 
             # 接收数据
             rx_data = recv_sertool.read_data()
-
+            # print(rx_data)
             # 数据送入状态机
             rf_mutex.lock()
             if rftool.RFLink_receivedata(rx_data): # 如果返回True,那么通知数据分析线程
@@ -344,6 +352,7 @@ class RoboSharkWindow(QtWidgets.QMainWindow): # 主窗口
         self.yaxis_lowbound = -1
         self.yaxis_upbound = 1
         self.datashow_running_flag = False
+        self.update_bound_cnt = 0
 
         self.datashow_sensor_type = 1 # 选择显示哪个传感器
         self.datashow_sensor_id = 1
@@ -364,13 +373,28 @@ class RoboSharkWindow(QtWidgets.QMainWindow): # 主窗口
         初始化UI
         :return:
         """
+        
         self.init_layout()
         self.statusBar().showMessage('串口未打开')
-        self.setFixedSize(1640,800)# 设置窗体大小
+        # self.setFixedSize(1640,800)# 设置窗体大小
         self.setWindowTitle('RoboShark Host')  # 设置窗口标题
         self.setWindowOpacity(0.98)
         self.setWindowIcon(QtGui.QIcon('icon/my/fish.ico'))
         self.show()  # 窗口显示
+        
+        # 获取屏幕的可用宽度和高度
+        self.desktop = app.primaryScreen().availableGeometry()
+        self.screen_height = self.desktop.height()
+        self.screen_width = self.desktop.width()
+        # self.window_height = int(self.screen_height * 0.8)
+        # self.window_width = int(self.screen_width * 0.8)
+        # self.resize(self.window_width,self.window_height)
+        # print(self.screen_width,self.screen_height)
+        # print(self.width(),self.height())
+        # 计算窗口的位置，使其位于屏幕中央
+        x = (self.screen_width - self.width()) // 2
+        y = (self.screen_height - self.height()) // 2
+        self.move(x,y)
 
     # 初始化layout界面
     def init_layout(self):
@@ -434,7 +458,7 @@ class RoboSharkWindow(QtWidgets.QMainWindow): # 主窗口
         self.init_console_panel()
         self.init_datashow_panel()
         self.init_cmdshell_panel()
-        
+
 
     # 初始化状态显示区面板
     def init_stateshow_panel(self):
@@ -807,22 +831,30 @@ class RoboSharkWindow(QtWidgets.QMainWindow): # 主窗口
         self.serial_layout.addWidget(self.serial1_com_label, 1, 0, 1, 1, QtCore.Qt.AlignLeft)
 
         self.serial1_com_combo = QtWidgets.QComboBox()
-        self.serial1_com_combo.addItem('ttyUSB0')
-        self.serial1_com_combo.addItem('ttyUSB1')
-        self.serial1_com_combo.addItem('ttyUSB2')
-        self.serial1_com_combo.addItem('ttyUSB3')
-        self.serial1_com_combo.addItem('COM3')
-        self.serial1_com_combo.addItem('COM5')
-        self.serial1_com_combo.addItem('COM6')
-        self.serial1_com_combo.addItem('COM7')
-        self.serial1_com_combo.addItem('COM9')
-        self.serial1_com_combo.addItem('COM10')
-        self.serial1_com_combo.addItem('COM11')
-        self.serial1_com_combo.addItem('COM12')
-        self.serial1_com_combo.addItem('COM13')
-        self.serial1_com_combo.addItem('COM18')
-        self.serial1_com_combo.addItem('COM19')
-        self.serial1_com_combo.addItem('COM20')
+
+        # self.serial1_com_combo.addItem('ttyUSB0')
+        # self.serial1_com_combo.addItem('ttyUSB1')
+        # self.serial1_com_combo.addItem('ttyUSB2')
+        # self.serial1_com_combo.addItem('ttyUSB3')
+        # self.serial1_com_combo.addItem('COM3')
+        # self.serial1_com_combo.addItem('COM4')
+        # self.serial1_com_combo.addItem('COM5')
+        # self.serial1_com_combo.addItem('COM6')
+        # self.serial1_com_combo.addItem('COM7')
+        # self.serial1_com_combo.addItem('COM8')
+        # self.serial1_com_combo.addItem('COM9')
+        # self.serial1_com_combo.addItem('COM10')
+        # self.serial1_com_combo.addItem('COM11')
+        # self.serial1_com_combo.addItem('COM12')
+        # self.serial1_com_combo.addItem('COM13')
+        # self.serial1_com_combo.addItem('COM18')
+        # self.serial1_com_combo.addItem('COM19')
+        # self.serial1_com_combo.addItem('COM20')
+
+        serial1_ports = [serial1_port.device for serial1_port in serial.tools.list_ports.comports()]
+        for serial1_port in serial1_ports:
+            self.serial1_com_combo.addItem(serial1_port)
+
         self.serial1_com_combo.setFixedSize(140, 30)
         self.serial_layout.addWidget(self.serial1_com_combo, 2, 0, 1, 1, QtCore.Qt.AlignLeft)
 
@@ -857,22 +889,30 @@ class RoboSharkWindow(QtWidgets.QMainWindow): # 主窗口
         self.serial_layout.addWidget(self.serial2_com_label, 3, 0, 1, 1, QtCore.Qt.AlignLeft)
 
         self.serial2_com_combo = QtWidgets.QComboBox()
-        self.serial2_com_combo.addItem('ttyUSB1')
-        self.serial2_com_combo.addItem('ttyUSB0')
-        self.serial2_com_combo.addItem('ttyUSB2')
-        self.serial2_com_combo.addItem('ttyUSB3')
-        self.serial2_com_combo.addItem('COM3')
-        self.serial2_com_combo.addItem('COM5')
-        self.serial2_com_combo.addItem('COM6')
-        self.serial2_com_combo.addItem('COM7')
-        self.serial2_com_combo.addItem('COM9')
-        self.serial2_com_combo.addItem('COM10')
-        self.serial2_com_combo.addItem('COM11')
-        self.serial2_com_combo.addItem('COM12')
-        self.serial2_com_combo.addItem('COM13')
-        self.serial2_com_combo.addItem('COM18')
-        self.serial2_com_combo.addItem('COM19')
-        self.serial2_com_combo.addItem('COM20')
+
+        # self.serial2_com_combo.addItem('ttyUSB1')
+        # self.serial2_com_combo.addItem('ttyUSB0')
+        # self.serial2_com_combo.addItem('ttyUSB2')
+        # self.serial2_com_combo.addItem('ttyUSB3')
+        # self.serial2_com_combo.addItem('COM3')
+        # self.serial2_com_combo.addItem('COM4')
+        # self.serial2_com_combo.addItem('COM5')
+        # self.serial2_com_combo.addItem('COM6')
+        # self.serial2_com_combo.addItem('COM7')
+        # self.serial2_com_combo.addItem('COM8')
+        # self.serial2_com_combo.addItem('COM9')
+        # self.serial2_com_combo.addItem('COM10')
+        # self.serial2_com_combo.addItem('COM11')
+        # self.serial2_com_combo.addItem('COM12')
+        # self.serial2_com_combo.addItem('COM13')
+        # self.serial2_com_combo.addItem('COM18')
+        # self.serial2_com_combo.addItem('COM19')
+        # self.serial2_com_combo.addItem('COM20')
+
+        serial2_ports = [serial2_port.device for serial2_port in serial.tools.list_ports.comports()]
+        for serial2_port in serial2_ports:
+            self.serial2_com_combo.addItem(serial2_port)
+
         self.serial2_com_combo.setFixedSize(140, self.button_height)
         self.serial_layout.addWidget(self.serial2_com_combo, 4, 0, 1, 1, QtCore.Qt.AlignLeft)
 
@@ -912,7 +952,7 @@ class RoboSharkWindow(QtWidgets.QMainWindow): # 主窗口
         self.fishid_combo.setFixedSize(120, self.button_height)
         self.serial_layout.addWidget(self.fishid_combo, 5, 1, 1, 1, QtCore.Qt.AlignLeft)
 
-        self.serial_shakehand_button = QtWidgets.QPushButton('握手/同步')
+        self.serial_shakehand_button = QtWidgets.QPushButton('握手')
         self.serial_shakehand_button.setFixedSize(120, self.button_height)
         self.serial_shakehand_button.setObjectName("SHAKING_HANDS")
         self.serial_layout.addWidget(self.serial_shakehand_button, 5, 2, 1, 2, QtCore.Qt.AlignCenter)
@@ -1062,17 +1102,19 @@ class RoboSharkWindow(QtWidgets.QMainWindow): # 主窗口
         self.datashow_storage_button.setFixedSize(80, self.button_height-10)
         self.datasc_layout.addWidget(self.datashow_storage_button, 14, 0, 1, 1, QtCore.Qt.AlignCenter)
         self.datashow_storage_button.setObjectName("GOTO_STORAGE_DATA")
+        self.datashow_storage_button.setEnabled(False)
 
         self.datashow_stopstorage_button = QtWidgets.QPushButton('停止记录')
         self.datashow_stopstorage_button.setFixedSize(80, self.button_height-10)
         self.datasc_layout.addWidget(self.datashow_stopstorage_button, 14, 1, 1, 1, QtCore.Qt.AlignCenter)
         self.datashow_stopstorage_button.setObjectName("GOTO_STOP_STORAGE")
+        self.datashow_stopstorage_button.setEnabled(False)
 
         self.datashow_save_button = QtWidgets.QPushButton('回传数据')
         self.datashow_save_button.setFixedSize(80, self.button_height-10)
         self.datasc_layout.addWidget(self.datashow_save_button, 14, 2, 1, 1, QtCore.Qt.AlignCenter)
         self.datashow_save_button.setObjectName("GOTO_SEND_DATA")
-
+        self.datashow_save_button.setEnabled(False)
 
     def closeEvent(self, event):
         self.close_signal.emit()
@@ -1189,7 +1231,8 @@ class RoboSharkWindow(QtWidgets.QMainWindow): # 主窗口
 
         # 数据打包
         datapack = rftool.RFLink_packdata(cmd, data)
-
+        # print(datapack[5])
+        # print(datapack[4])
         # 数据发送
         with QtCore.QMutexLocker(ser_mutex):
             try:
@@ -1275,7 +1318,12 @@ class RoboSharkWindow(QtWidgets.QMainWindow): # 主窗口
                 # 如果是设置运动参数相关的命令
                 if rflink.Command[cmd] is rflink.Command.SET_SINE_MOTION_AMP \
                     or rflink.Command[cmd] is rflink.Command.SET_SINE_MOTION_FREQ \
-                    or rflink.Command[cmd] is rflink.Command.SET_SINE_MOTION_OFFSET:
+                    or rflink.Command[cmd] is rflink.Command.SET_SINE_MOTION_OFFSET \
+                    or rflink.Command[cmd] is rflink.Command.SET_TAIL_AMP1 \
+                    or rflink.Command[cmd] is rflink.Command.SET_TAIL_AMP2 \
+                    or rflink.Command[cmd] is rflink.Command.SET_TAIL_AMP3 \
+                    or rflink.Command[cmd] is rflink.Command.SET_TAIL_AMP4 \
+                    or rflink.Command[cmd] is rflink.Command.SET_AN_EVENT:
                     try:
                         data = (instrlist[1]).encode('ascii')
                     except IndexError:
@@ -1914,25 +1962,30 @@ class RoboSharkWindow(QtWidgets.QMainWindow): # 主窗口
             rm_mutex.lock()
             pal = QtGui.QPalette()
             self.swimstate_label.setAutoFillBackground(True)
-            if robosharkstate.autoctl_state is robotstate.AutoCTL.AutoCTL_STOP:
-                if robosharkstate.swim_state is robotstate.SwimState.SWIM_FORCESTOP:
-                    self.swimstate_label.setText('停止')
+            if robosharkstate.water_state == 0:
+                if robosharkstate.autoctl_state is robotstate.AutoCTL.AutoCTL_STOP:
+                    if robosharkstate.swim_state is robotstate.SwimState.SWIM_FORCESTOP:
+                        self.swimstate_label.setText('停止')
+                        pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.red)
+                        self.swimstate_label.setPalette(pal)
+                    elif robosharkstate.swim_state is robotstate.SwimState.SWIM_STOP:
+                        self.swimstate_label.setText('暂停')
+                        pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.blue)
+                        self.swimstate_label.setPalette(pal)
+                    elif robosharkstate.swim_state is robotstate.SwimState.SWIM_RUN:
+                        self.swimstate_label.setText('运行')
+                        pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.green)
+                        self.swimstate_label.setPalette(pal)
+                    elif robosharkstate.swim_state is robotstate.SwimState.SWIM_INIT:
+                        self.swimstate_label.setText('初始化')
+                        pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.gray)
+                        self.swimstate_label.setPalette(pal)
+                else:
+                    self.swimstate_label.setText('Auto')
                     pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.red)
                     self.swimstate_label.setPalette(pal)
-                elif robosharkstate.swim_state is robotstate.SwimState.SWIM_STOP:
-                    self.swimstate_label.setText('暂停')
-                    pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.blue)
-                    self.swimstate_label.setPalette(pal)
-                elif robosharkstate.swim_state is robotstate.SwimState.SWIM_RUN:
-                    self.swimstate_label.setText('运行')
-                    pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.green)
-                    self.swimstate_label.setPalette(pal)
-                elif robosharkstate.swim_state is robotstate.SwimState.SWIM_INIT:
-                    self.swimstate_label.setText('初始化')
-                    pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.gray)
-                    self.swimstate_label.setPalette(pal)
             else:
-                self.swimstate_label.setText('Auto')
+                self.swimstate_label.setText('漏水')
                 pal.setColor(QtGui.QPalette.WindowText, QtCore.Qt.red)
                 self.swimstate_label.setPalette(pal)
 
@@ -1987,15 +2040,25 @@ class RoboSharkWindow(QtWidgets.QMainWindow): # 主窗口
             self.showtime = self.showtime + 1.0
             self.sensor_data_canvas.plot(self.timelist, self.datalist)
             if showdata > self.yaxis_upbound:
-                self.yaxis_upbound = showdata + showdata*0.2
+                if showdata < 10000:
+                    self.yaxis_upbound = showdata + showdata*0.2
+                self.update_bound_cnt = 0
             elif showdata < self.yaxis_lowbound:
                 self.yaxis_lowbound = showdata - abs(showdata) * 0.2
+                self.update_bound_cnt = 0
+            else:
+                self.update_bound_cnt = self.update_bound_cnt + 1
             self.sensor_data_canvas.set_ylim(self.yaxis_lowbound, self.yaxis_upbound)
 
             if len(self.datalist) > 100:
                 self.timelist.pop(0)
                 self.datalist.pop(0)
             plt_mutex.unlock()
+
+            # if self.update_bound_cnt > 20:
+            #     self.yaxis_lowbound = min(self.datalist[20:])
+            #     self.yaxis_upbound = max(self.datalist[20:])
+            #     self.update_bound_cnt = 0
 
         elif rflink.Command(command_id) is rflink.Command.PRINT_SYS_MSG:
             rf_mutex.lock()
@@ -2056,8 +2119,12 @@ class RoboSharkWindow(QtWidgets.QMainWindow): # 主窗口
 
 
 if __name__ == '__main__':
-     # 创建QApplication对象是必须，管理整个程序，参数可有可无，有的话可接收命令行参数
-    app = QtWidgets.QApplication(sys.argv) 
+    QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
+
+    # 创建QApplication对象是必须，管理整个程序，参数可有可无，有的话可接收命令行参数
+    app = QtWidgets.QApplication(sys.argv)
+    # # 获取高DPI缩放比例
+    # dpi_scale_factor = app.devicePixelRatio()
 
     # 创建窗体对象
     RRW = RoboSharkWindow()  

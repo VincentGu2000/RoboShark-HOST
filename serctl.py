@@ -1,3 +1,15 @@
+'''
+Author: Vincent_Gu
+Date: 2023-07-19 09:10:41
+LastEditTime: 2023-09-24 13:17:24
+Description: 
+'''
+# python3
+# @Time    : 2021.05.18
+# @Author  : 张鹏飞
+# @FileName: serial.py
+# @Software: 机器鲨鱼上位机
+
 import serial
 
 class RobotSerial():
@@ -19,6 +31,9 @@ class RobotSerial():
         """
         self.ser.port = port
         self.ser.baudrate = baudrate
+        self.ser.xonxoff = False
+        self.ser.rts = False
+        self.ser.dtr = False
         self.ser.open()
 
     def close_serial(self):
